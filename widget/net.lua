@@ -32,11 +32,17 @@ local function factory(args)
                 (type(args.iface) == "table" and args.iface)) or {}
 
     function net.get_devices()
-        net.iface = {} -- reset at every call
-        helpers.line_callback("ip link", function(line)
-            net.iface[#net.iface + 1] = not string.match(line, "LOOPBACK") and string.match(line, "(%w+): <") or nil
-        end)
-    end
+		net.iface = {}
+		local f = io.popen("ip -o link show")
+		if not f then return end
+		for line in f:lines() do
+			local dev = line:match("^%d+: ([^:]+):")
+			if dev and dev ~= "lo" then
+				table.insert(net.iface, dev)
+			end
+		end
+		f:close()
+	end
 
     if #net.iface == 0 then net.get_devices() end
 
